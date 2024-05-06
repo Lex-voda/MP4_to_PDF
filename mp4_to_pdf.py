@@ -2,6 +2,7 @@ import os
 import cv2
 import time
 import json
+import numpy as np
 from tqdm import tqdm
 from skimage.metrics import structural_similarity as ssim
 from concurrent.futures import ThreadPoolExecutor
@@ -41,12 +42,13 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
     frame_list = []
     jump_threshold = fps*2
     init_jump = fps
+    jump = init_jump
     
     progress_prefix = f"Processing {os.path.basename(video_path)}"
     start_time = time.time()
     
     i = 1
-    while i < frame_count and len(frame_list) < 33:
+    while i + jump < frame_count :
         
         # 更新进度条
         progress_bar(current=i, 
@@ -78,6 +80,8 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
         # 抓取后继帧判断稳定性，只对稳定帧进行处理
         cap.set(cv2.CAP_PROP_POS_FRAMES, i+fps)
         ret, next_frame = cap.read()
+        if not ret:
+            break
         
         next_frame_binary = cv2.adaptiveThreshold(cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
         current_frame_binary = cv2.adaptiveThreshold(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
@@ -85,6 +89,9 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
         stablity_similarity = ssim(next_frame_binary, current_frame_binary)
         if stablity_similarity > similarity_threshold:
             frame_list.append(frame)
+            #combined_image = np.hstack((cv2.resize(current_frame_binary, (0, 0), fx=0.5, fy=0.5), cv2.resize(next_frame_binary, (0, 0), fx=0.5, fy=0.5)))
+            #cv2.imshow('Combined Image', combined_image)
+            #cv2.waitKey(1)
         else:
             i += fps
             continue
@@ -103,6 +110,7 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
             next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
             similarity_next = ssim(current_frame, next_frame_gray)
             if similarity_next <= similarity_threshold:
+                print(similarity_next)
                 # Found a different frame
                 if jump > jump_threshold:
                     # Jumped too far, return to previous similar frame
@@ -174,15 +182,9 @@ if __name__ == "__main__":
     相似度阈值:similarity_threshold
     '''
     folder_path = "video" 
-    '''video_info_list = [
-        {'prefix': "2", 'skip_time_ranges': [('00:00:30', '00:08:05'),('00:29:00', '00:35:40'),('00:45:50', '00:54:01')]},
-        {'prefix': "3", 'skip_time_ranges': [('00:00:30', '00:01:00'),('00:46:29', '00:54:00')]},
-        {'prefix': "4", 'skip_time_ranges': [('00:35:05', '00:39:30'), ('00:45:30', '00:54:01')]},
-        {'prefix': "5", 'skip_time_ranges': []},
-        {'prefix': "6", 'skip_time_ranges': [('00:05:25', '00:09:10'), ('00:45:55', '00:54:02')]}
-    ]'''
+
     with open('video.json', 'r') as f:
         video_info_list = json.load(f)
-    similarity_threshold = 0.9  # Adjust the similarity threshold as needed
+    similarity_threshold = 0.88  # Adjust the similarity threshold as needed
     
     process_videos(folder_path, video_info_list, similarity_threshold)
