@@ -33,7 +33,7 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
         return
     
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS)) * 5  # fps可以开大一点[fps,10*fps]，加快处理速度和稳定性
+    fps = int(cap.get(cv2.CAP_PROP_FPS)) * 5 
     
     # Create output folder if not exists
     if not os.path.exists(output_folder):
@@ -110,7 +110,6 @@ def extract_frames(video_path, output_folder, similarity_threshold, skip_time_ra
             next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
             similarity_next = ssim(current_frame, next_frame_gray)
             if similarity_next <= similarity_threshold:
-                print(similarity_next)
                 # Found a different frame
                 if jump > jump_threshold:
                     # Jumped too far, return to previous similar frame

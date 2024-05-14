@@ -1,0 +1,12 @@
+natsort
+time
+os
+glob
+cv2
+numpy
+skimage
+fpdf
+tqdm
+concurrent
+threading
+argparse
