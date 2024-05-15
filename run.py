@@ -16,6 +16,7 @@ class VideoToPdf:
                  output_folder, 
                  similarity_threshold=0.90,
                  num_workers=10,
+                 async_model=False,
                  verbose=True,
                  overwrite=True):
         self.similarity_threshold = similarity_threshold
@@ -24,6 +25,7 @@ class VideoToPdf:
         self.num_workers = num_workers
         self.verbose = verbose
         self.overwrite = overwrite
+        self.async_model = async_model
         
         self.video_name_list = [os.path.splitext(os.path.basename(filename))[0] for filename in glob.glob(os.path.join(self.input_folder, "*.mp4"))]
         self.video_name_list = natsorted(self.video_name_list)
@@ -51,7 +53,7 @@ class VideoToPdf:
             return True
         similarity = similarity_compare(frame, next_frame)
         if dominant:
-            return similarity > self.similarity_threshold and not is_dominant_color(frame)
+            return similarity > self.similarity_threshold and  not is_dominant_color(frame)
         else:
             return similarity > self.similarity_threshold
     
@@ -115,29 +117,31 @@ class VideoToPdf:
             return
         self.fps = int(cap.get(cv2.CAP_PROP_FPS))
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        frames_per_worker = frame_count // num_workers
         cap.release()
-        
         self.progressbar.total = frame_count
         self.progressbar.prefix = f"Processing {os.path.basename(video_path)}"
-        
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = []
-            for i in range(num_workers):
-                start = i * frames_per_worker
-                if i == num_workers - 1:  # last worker takes the remaining frames
-                    end = frame_count
-                else:
-                    end = start + frames_per_worker
-                futures.append(executor.submit(self.extract_frames, video_path, start, end))
+                    
+        if self.async_model:
+            frames_per_worker = frame_count // num_workers
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = []
+                for i in range(num_workers):
+                    start = i * frames_per_worker
+                    if i == num_workers - 1:  # last worker takes the remaining frames
+                        end = frame_count
+                    else:
+                        end = start + frames_per_worker
+                    futures.append(executor.submit(self.extract_frames, video_path, start, end))
 
-            results = []
-            for future in futures:
-                results.append(future.result())
-        for i in range(len(results), 1):
-            if similarity_compare(results[i-1][-1],results[i][0])>self.similarity_threshold:
-                results[i] = results[i][1:]
-        self.frame_list = sum(results, [])
+                results = []
+                for future in futures:
+                    results.append(future.result())
+            for i in range(len(results), 1):
+                if similarity_compare(results[i-1][-1],results[i][0])>self.similarity_threshold:
+                    results[i] = results[i][1:]
+            self.frame_list = sum(results, [])
+        else:
+            self.frame_list = self.extract_frames(video_path, 0, frame_count)
         
         # Remove similar frames
         for i in range(len(self.frame_list),1):
@@ -170,6 +174,7 @@ if __name__ == "__main__":
                               args.output_folder, 
                               args.similarity_threshold, 
                               args.num_workers, 
+                              args.async_model,
                               args.verbose, 
                               args.overwrite)
     video_to_pdf.run()
