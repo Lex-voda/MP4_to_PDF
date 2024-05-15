@@ -120,6 +120,7 @@ class VideoToPdf:
         cap.release()
         self.progressbar.total = frame_count
         self.progressbar.prefix = f"Processing {os.path.basename(video_path)}"
+        self.progressbar.start()
                     
         if self.async_model:
             frames_per_worker = frame_count // num_workers
@@ -142,7 +143,8 @@ class VideoToPdf:
             self.frame_list = sum(results, [])
         else:
             self.frame_list = self.extract_frames(video_path, 0, frame_count)
-        print("")
+            
+        self.progressbar.clear()
         
         # Remove similar frames
         for i in range(len(self.frame_list),1):

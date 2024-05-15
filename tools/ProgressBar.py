@@ -12,6 +12,17 @@ class ProgressBar:
         self.progress += progress
         self.num_iters += iter
         self.display()
+        
+    def clear(self):
+        self.total = 0
+        self.num_iters = 0
+        self.progress = 0
+        self.prefix = ''
+        self.start()
+        print('\r')
+        
+    def start(self):
+        self.start_time = time.time()
 
     def display(self):
         progress = self.progress / self.total
