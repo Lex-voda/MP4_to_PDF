@@ -64,6 +64,7 @@ class VideoToPdf:
         jump = self.fps
         i = start
         pre_i = i
+        pre__frame_index = i
         frames = []
         flag = False
         
@@ -73,6 +74,7 @@ class VideoToPdf:
         frames.append(frame)
         while i + jump < end :
             next_frame_index = min(i + jump, end - 1)
+            
             cap.set(cv2.CAP_PROP_POS_FRAMES, next_frame_index)
             ret, next_frame = cap.read()
             if not ret:
@@ -82,7 +84,7 @@ class VideoToPdf:
                 # Found a different frame
                 if not flag:
                     flag = True
-                    i = pre_i
+                    i = pre__frame_index
                     jump = self.fps
                     continue
                 else:
@@ -96,6 +98,7 @@ class VideoToPdf:
                         self.progressbar.update(i-pre_i, 1)
                     continue
             # No different frame found, continue to next jump
+            pre__frame_index = next_frame_index
             jump *= 2
         with self.lock:
             self.progressbar.update(i-pre_i, 1)
