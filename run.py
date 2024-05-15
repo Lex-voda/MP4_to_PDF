@@ -47,7 +47,7 @@ class VideoToPdf:
         ret, frame = cap.read()
         if not ret:
             return False
-        cap.set(cv2.CAP_PROP_POS_FRAMES, i+self.fps*4)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i+self.fps)
         ret, next_frame = cap.read()
         if not ret:
             return True
@@ -57,7 +57,7 @@ class VideoToPdf:
         else:
             return similarity > self.similarity_threshold
     
-    def extract_frames(self, video_path,start,end):
+    def extract_frames(self, video_path, start, end):
         cap = cv2.VideoCapture(video_path)
         cap.set(cv2.CAP_PROP_POS_FRAMES, start)
         
@@ -142,6 +142,7 @@ class VideoToPdf:
             self.frame_list = sum(results, [])
         else:
             self.frame_list = self.extract_frames(video_path, 0, frame_count)
+        print("")
         
         # Remove similar frames
         for i in range(len(self.frame_list),1):
