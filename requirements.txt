@@ -1,0 +1,6 @@
+natsort
+opencv-python
+numpy
+scikit-image
+fpdf
+tqdm
